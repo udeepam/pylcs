@@ -27,6 +27,20 @@ vector<string> utf8_split(const string &str){
     return split;
 }
 
+vector<string> word_split(const string &str){
+    string s;
+    stringstream ss(str);
+    vector<string> split;
+    while (getline(ss, s, ' ')) {
+
+        // store token string in the vector
+        split.push_back(s);
+    }
+
+
+    return split;
+}
+
 
 // 最长公共子序列（不连续）
 int lcs_sequence_length(const string &str1, const string &str2) {
@@ -65,6 +79,48 @@ int lcs_sequence_length(const string &str1, const string &str2) {
 vector<int> lcs_sequence_idx(const string &str, const string &ref) {
     vector<string> s1 = utf8_split(str);
     vector<string> s2 = utf8_split(ref);
+    int m = s1.size();
+    int n = s2.size();
+    vector<vector<int>> dp(m + 1, vector<int>(n + 1));
+    vector<vector<char>> direct(m + 1, vector<char>(n + 1));
+    vector<int> res(m, -1);
+    if (m == 0 || n == 0)
+        return res;
+
+    int i, j;
+    for (i = 0; i <= m; i++) dp[i][0] = 0;
+    for (j = 0; j <= n; j++) dp[0][j] = 0;
+    for (i = 1; i <= m; i++) {
+        for (j = 1; j <= n; j++) {
+            if (s1[i - 1] == s2[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+                direct[i][j] = 'm';     // match
+            } else {
+                if (dp[i - 1][j] >= dp[i][j - 1]) {
+                    dp[i][j] = dp[i - 1][j];
+                    direct[i][j] = 's';     // str+1
+                }
+                else {
+                    dp[i][j] = dp[i][j-1];
+                    direct[i][j] = 'r';     // ref+1
+                }
+            }
+        }
+    }
+    for (i = m, j = n; i > 0 && j > 0; ){
+        if (direct[i][j] == 'm') {
+            res[i-1] = j-1;
+            i--; j--;
+        }
+        else if (direct[i][j] == 's') i--;
+        else if (direct[i][j] == 'r') j--;
+    }
+    return res;
+}
+
+vector<int> lcs_word_sequence_idx(const string &str, const string &ref) {
+    vector<string> s1 = word_split(str);
+    vector<string> s2 = word_split(ref);
     int m = s1.size();
     int n = s2.size();
     vector<vector<int>> dp(m + 1, vector<int>(n + 1));
@@ -332,6 +388,8 @@ PYBIND11_MODULE(_pylcs, m) {
     m.def("lcs", &lcs_sequence_length, R"pbdoc(Longest common subsequence)pbdoc");
     m.def("lcs_sequence_length", &lcs_sequence_length, R"pbdoc(Longest common subsequence)pbdoc");
     m.def("lcs_sequence_idx", &lcs_sequence_idx, R"pbdoc(Longest common subsequence indices mapping from str to ref)pbdoc",
+        py::arg("s"), py::arg("ref"));
+    m.def("lcs_word_sequence_idx", &lcs_word_sequence_idx, R"pbdoc(Longest common word subsequence indices mapping from str to ref)pbdoc",
         py::arg("s"), py::arg("ref"));
     m.def("lcs_of_list", &lcs_sequence_of_list, R"pbdoc(Longest common subsequence of list)pbdoc");
     m.def("lcs_sequence_of_list", &lcs_sequence_of_list, R"pbdoc(Longest common subsequence of list)pbdoc");
